@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Elite Risk Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root {
+    --bg:#0e0e0f; --surface:#18181b; --border:#2a2a2e;
+    --text:#f4f4f5; --muted:#71717a; --accent:#22d3ee;
+    --green:#4ade80; --red:#f87171; --amber:#fbbf24;
+    --mono:'DM Mono',monospace; --syne:'Syne',sans-serif;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--mono);padding:20px; display:flex; justify-content:center;}
+
+  .widget-card {
+    width: 100%; max-width: 350px; background: var(--surface); 
+    border: 1px solid var(--border); border-radius: 16px; padding: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .header { margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .title { font-family: var(--syne); font-size: 18px; color: var(--text); }
+  .subtitle { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  /* State Selector */
+  .label { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; display: block; }
+  
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .state-btn {
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    padding: 12px; border-radius: 10px; cursor: pointer; font-size: 12px; transition: 0.3s;
+    font-family: var(--mono);
+  }
+  .state-btn:hover { border-color: var(--muted); }
+  .state-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(34, 211, 238, 0.05); }
+
+  /* Risk Display */
+  .risk-display {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; text-align: center; position: relative; overflow: hidden;
+  }
+  .suggested-risk { font-family: var(--syne); font-size: 32px; font-weight: 700; color: var(--accent); margin: 5px 0; }
+  .mantra { font-size: 11px; color: var(--muted); font-style: italic; line-height: 1.4; min-height: 32px; }
+
+  /* Capital Input */
+  .input-wrap { margin-top: 20px; }
+  .styled-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 12px; border-radius: 8px; font-family: var(--mono); outline: none;
+  }
+
+  .calc-row { display: flex; justify-content: space-between; margin-top: 15px; font-size: 12px; }
+  .val-highlight { color: var(--accent); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="widget-card">
+  <div class="header">
+    <span class="title">Risk Manager</span><br>
+    <span class="subtitle">Market State Protocol</span>
+  </div>
+
+  <label class="label">Current Environment</label>
+  <div class="state-grid">
+    <button class="state-btn" onclick="updateState('A+', this)">A+ Setup</button>
+    <button class="state-btn" onclick="updateState('Trending', this)">Trending</button>
+    <button class="state-btn" onclick="updateState('Volatile', this)">Volatile</button>
+    <button class="state-btn" onclick="updateState('Chop', this)">Chop / Range</button>
+  </div>
+
+  <div class="risk-display">
+    <label class="label" style="margin-bottom:0">Suggested Risk</label>
+    <div class="suggested-risk" id="risk-pct">1.00%</div>
+    <div class="mantra" id="mantra">Select a market state to see protocol.</div>
+  </div>
+
+  <div class="input-wrap">
+    <label class="label">Trading Capital ($)</label>
+    <input type="number" id="capital" class="styled-input" placeholder="e.g. 10000" oninput="calculate()">
+  </div>
+
+  <div class="calc-row">
+    <span style="color:var(--muted)">Max Loss ($):</span>
+    <span class="val-highlight" id="max-loss">$0.00</span>
+  </div>
+</div>
+
+<script>
+  const protocols = {
+    'A+': { pct: 1.5, mantra: "High conviction. Full size allowed. Maintain hard stops." },
+    'Trending': { pct: 1.0, mantra: "Standard protocol. Follow the trend, don't fight the pullbacks." },
+    'Volatile': { pct: 0.5, mantra: "Slippage risk high. Cut size in half. Wide stops, small size." },
+    'Chop': { pct: 0.25, mantra: "Rangebound death. Minimal size or No Trade. Protect capital." }
+  };
+
+  let currentRisk = 0;
+
+  // Persistence: Save Capital to LocalStorage
+  window.onload = () => {
+    const savedCap = localStorage.getItem('elite_capital');
+    if(savedCap) {
+      document.getElementById('capital').value = savedCap;
+      calculate();
+    }
+  };
+
+  function updateState(state, btn) {
+    // UI Update
+    document.querySelectorAll('.state-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Data Update
+    const data = protocols[state];
+    currentRisk = data.pct;
+    document.getElementById('risk-pct').textContent = data.pct.toFixed(2) + '%';
+    document.getElementById('mantra').textContent = data.mantra;
+    
+    // Highlight colors based on risk
+    const color = state === 'Chop' ? 'var(--red)' : (state === 'A+' ? 'var(--green)' : 'var(--accent)');
+    document.getElementById('risk-pct').style.color = color;
+
+    calculate();
+  }
+
+  function calculate() {
+    const capital = parseFloat(document.getElementById('capital').value) || 0;
+    localStorage.setItem('elite_capital', capital);
+    
+    const loss = (capital * (currentRisk / 100)).toFixed(2);
+    document.getElementById('max-loss').textContent = '$' + new Intl.NumberFormat().format(loss);
+  }
+</script>
+
+</body>
+</html>
