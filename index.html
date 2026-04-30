@@ -12,7 +12,14 @@
     --text: #f4f4f5; --muted: #71717a; --accent: #22d3ee;
     --green: #4ade80; --red: #f87171; --mono: 'DM Mono', monospace; --syne: 'Syne', sans-serif;
   }
+  [data-theme="light"] {
+    --bg: #f4f4f5; --surface: #ffffff; --border: #e4e4e7;
+    --text: #09090b; --muted: #71717a; --accent: #0891b2;
+  }
   body { background: var(--bg); color: var(--text); font-family: var(--mono); padding: 15px; overflow-x: hidden; transition: background 0.3s; }
+
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+  .title { font-family: var(--syne); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
 
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
   .label-sm { font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; display: block; letter-spacing: 1px; font-weight: 700; }
@@ -55,10 +62,21 @@
   }
   .disclaimer b { color: var(--red); text-transform: uppercase; }
 
+  .theme-toggle {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px; border-radius: 50%; cursor: pointer; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
   #custom-mult-container { display: none; }
 </style>
 </head>
-<body>
+<body data-theme="dark">
+
+  <div class="header">
+    <span class="title">Execution Risk Terminal</span>
+    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+  </div>
 
   <div class="panel">
     <label class="label-sm">Market Instrument</label>
@@ -140,6 +158,11 @@
 
 <script>
   let currentMult = 20;
+
+  function toggleTheme() {
+    const b = document.body;
+    b.setAttribute('data-theme', b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  }
 
   function updateMarket() {
     const sel = document.getElementById('market-select');
