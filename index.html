@@ -12,7 +12,7 @@
     --text: #f4f4f5; --muted: #71717a; --accent: #22d3ee;
     --green: #4ade80; --red: #f87171; --mono: 'DM Mono', monospace; --syne: 'Syne', sans-serif;
   }
-  body { background: var(--bg); color: var(--text); font-family: var(--mono); padding: 15px; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); padding: 15px; overflow-x: hidden; transition: background 0.3s; }
 
   .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
   .label-sm { font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; display: block; letter-spacing: 1px; font-weight: 700; }
@@ -51,6 +51,7 @@
   .disclaimer { 
     background: rgba(248, 113, 113, 0.05); border: 2px solid var(--red); 
     color: var(--text); font-size: 10px; padding: 15px; border-radius: 8px; margin-top: 20px; line-height: 1.5;
+    text-align: center;
   }
   .disclaimer b { color: var(--red); text-transform: uppercase; }
 
