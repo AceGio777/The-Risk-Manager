@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Risk Manager | Precision Sizer</title>
+<title>Elite Risk Projection | Multi-Market</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700&display=swap" rel="stylesheet" />
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,141 +12,193 @@
     --text: #f4f4f5; --muted: #71717a; --accent: #22d3ee;
     --green: #4ade80; --red: #f87171; --mono: 'DM Mono', monospace; --syne: 'Syne', sans-serif;
   }
-  [data-theme="light"] {
-    --bg: #f4f4f5; --surface: #ffffff; --border: #e4e4e7;
-    --text: #09090b; --muted: #71717a; --accent: #0891b2;
+  body { background: var(--bg); color: var(--text); font-family: var(--mono); padding: 15px; overflow-x: hidden; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+  .label-sm { font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 5px; display: block; letter-spacing: 1px; font-weight: 700; }
+  
+  select, input { 
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); 
+    padding: 12px; border-radius: 6px; font-family: var(--mono); outline: none; margin-bottom: 12px;
+    font-size: 13px; appearance: none;
   }
-  body { background: var(--bg); color: var(--text); font-family: var(--mono); padding: 20px; transition: background 0.3s; }
+  input:focus, select:focus { border-color: var(--accent); }
 
-  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-  .title { font-family: var(--syne); font-size: 18px; font-weight: 700; text-transform: uppercase; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-  /* Input Grid */
-  .input-section { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-  .input-group { display: flex; flex-direction: column; gap: 6px; }
-  label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-  input { 
-    background: var(--surface); border: 1px solid var(--border); color: var(--text); 
-    padding: 12px; border-radius: 8px; font-family: var(--mono); outline: none; transition: 0.2s;
+  /* Projection Cards */
+  .card { 
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; 
+    padding: 35px 15px; text-align: center; position: relative; overflow: hidden; margin-bottom: 15px;
   }
-  input:focus { border-color: var(--accent); }
+  .impact-val { font-family: Impact, sans-serif; font-size: 58px; line-height: 1; position: relative; z-index: 2; letter-spacing: -1px; }
+  
+  .risk-glow { color: var(--red); text-shadow: 0 0 30px rgba(248, 113, 113, 0.8); }
+  .reward-glow { color: var(--green); text-shadow: 0 0 30px rgba(74, 222, 128, 0.8); }
 
-  /* Risk Selector */
-  .risk-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
-  .risk-btn {
-    background: var(--surface); border: 1px solid var(--border); color: var(--muted);
-    padding: 8px; border-radius: 6px; cursor: pointer; font-size: 11px; transition: 0.2s;
+  /* Animated Arrows */
+  .arrow { position: absolute; font-size: 32px; opacity: 0; pointer-events: none; z-index: 1; }
+  @keyframes fadeDown { 0% { transform: translateY(-30px); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(50px); opacity: 0; } }
+  @keyframes fadeUp { 0% { transform: translateY(50px); opacity: 0; } 50% { opacity: 0.6; } 100% { transform: translateY(-30px); opacity: 0; } }
+  .down-anim { animation: fadeDown 2s infinite linear; }
+  .up-anim { animation: fadeUp 2s infinite linear; }
+
+  /* Data Footer */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 15px; border-top: 1px solid var(--border); margin-top: 10px; }
+  .stat-box { background: var(--bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border); text-align: center; }
+  .stat-val { font-family: var(--syne); font-size: 14px; color: var(--accent); font-weight: 700; }
+  
+  .disclaimer { 
+    background: rgba(248, 113, 113, 0.05); border: 2px solid var(--red); 
+    color: var(--text); font-size: 10px; padding: 15px; border-radius: 8px; margin-top: 20px; line-height: 1.5;
   }
-  .risk-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(34, 211, 238, 0.05); }
+  .disclaimer b { color: var(--red); text-transform: uppercase; }
 
-  /* Output Display */
-  .result-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 20px; text-align: center; position: relative; overflow: hidden;
-  }
-  .result-label { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
-  .result-val { font-family: var(--syne); font-size: 32px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-  .result-sub { font-size: 11px; color: var(--muted); }
-
-  /* Kill Switch Style */
-  .danger-zone { border-color: var(--red) !important; }
-  .danger-text { color: var(--red) !important; }
-
-  .theme-toggle {
-    background: var(--surface); border: 1px solid var(--border); color: var(--text);
-    padding: 8px; border-radius: 4px; cursor: pointer; width: 34px; height: 34px;
-    display: flex; align-items: center; justify-content: center;
-  }
+  #custom-mult-container { display: none; }
 </style>
 </head>
-<body data-theme="dark">
+<body>
 
-  <div class="header">
-    <span class="title">Risk Manager</span>
-    <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
-  </div>
+  <div class="panel">
+    <label class="label-sm">Market Instrument</label>
+    <select id="market-select" onchange="updateMarket()">
+      <optgroup label="Indices (Standard / Micro)">
+        <option value="20">NASDAQ 100 (NQ - $20/pt)</option>
+        <option value="2">NASDAQ 100 (MNQ - $2/pt)</option>
+        <option value="50">S&P 500 (ES - $50/pt)</option>
+        <option value="5">S&P 500 (MES - $5/pt)</option>
+        <option value="5">DOW 30 (YM - $5/pt)</option>
+        <option value="0.5">DOW 30 (MYM - $0.5/pt)</option>
+      </optgroup>
+      <optgroup label="Metals & Energy">
+        <option value="100">GOLD (GC - $100/pt)</option>
+        <option value="10">GOLD (MGC - $10/pt)</option>
+        <option value="1000">CRUDE OIL (CL - $1000/pt)</option>
+        <option value="100">CRUDE OIL (MCL - $100/pt)</option>
+      </optgroup>
+      <optgroup label="Crypto (Per $1 Move)">
+        <option value="1">BITCOIN (1.00 Lot = $1/pt)</option>
+        <option value="0.1">BITCOIN (0.10 Lot = $0.10/pt)</option>
+        <option value="1">ETHEREUM (1.00 Lot = $1/pt)</option>
+      </optgroup>
+      <optgroup label="Forex (Standard 100k)">
+        <option value="10">Forex Majors (Avg $10/pip)</option>
+        <option value="8">Forex JPY Pairs (Avg $8/pip)</option>
+      </optgroup>
+      <option value="CUSTOM">-- CUSTOM MULTIPLIER --</option>
+    </select>
 
-  <div class="input-section">
-    <div class="input-group">
-      <label>Account Balance ($)</label>
-      <input type="number" id="balance" value="50000" oninput="calculateRisk()">
+    <div id="custom-mult-container">
+      <label class="label-sm">Custom Point Value ($)</label>
+      <input type="number" id="custom-mult" value="1" oninput="calc()">
     </div>
-    <div class="input-group">
-      <label>Stop Loss (Pips/Pts)</label>
-      <input type="number" id="sl-distance" value="10" oninput="calculateRisk()">
+
+    <div class="grid-2">
+      <div>
+        <label class="label-sm">Stop Loss Dist.</label>
+        <input type="number" id="sl" value="10" oninput="calc()">
+      </div>
+      <div>
+        <label class="label-sm">Target R:R</label>
+        <input type="number" id="rr" value="3" oninput="calc()">
+      </div>
+    </div>
+    
+    <label class="label-sm">Position Size (Lots/Units)</label>
+    <input type="number" id="lots" value="1.00" step="0.1" oninput="calc()">
+  </div>
+
+  <div class="card" style="border-bottom: 5px solid var(--red);">
+    <span class="label-sm">Risk Exposure</span>
+    <div id="red-arrows-layer"></div>
+    <div class="impact-val risk-glow" id="out-risk">-$0</div>
+  </div>
+
+  <div class="card" style="border-bottom: 5px solid var(--green);">
+    <span class="label-sm">Profit Projection</span>
+    <div id="green-arrows-layer"></div>
+    <div class="impact-val reward-glow" id="out-reward">+$0</div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="label-sm">Point Multiplier</div>
+      <div id="mult-val" class="stat-val">$0.00</div>
+    </div>
+    <div class="stat-box">
+      <div class="label-sm">Value Per Move</div>
+      <div id="move-val" class="stat-val">$0.00</div>
     </div>
   </div>
 
-  <label style="display:block; margin-bottom:8px;">Select Risk %</label>
-  <div class="risk-selector">
-    <button class="risk-btn" onclick="setRisk(0.25, this)">0.25%</button>
-    <button class="risk-btn" onclick="setRisk(0.5, this)">0.50%</button>
-    <button class="risk-btn active" onclick="setRisk(1, this)">1.00%</button>
-  </div>
-
-  <div class="result-card" id="main-display">
-    <div class="result-label">Position Size (Lots)</div>
-    <div class="result-val" id="lot-size">0.00</div>
-    <div class="result-sub" id="dollar-risk">Risking: $0.00</div>
-  </div>
-
-  <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
-    <label>Daily Max Loss: <span id="max-loss-display" class="result-sub" style="color: var(--red)">$500</span></label>
-    <input type="range" id="max-loss-slider" min="100" max="2000" step="100" value="500" style="width: 100px;" oninput="updateMaxLoss()">
+  <div class="disclaimer">
+    <b>STRICT DISCLAIMER:</b> This tool provides mathematical projections based on theoretical exchange contract sizes. It does NOT account for slippage, broker spreads, commissions, or real-time currency fluctuations. 
+    <b>The user assumes 100% responsibility for all trades executed.</b> Do not rely solely on this widget for financial decisions. Verify your broker's specific "Value per Pip/Tick" within your trading platform before entering any position. 
+    <b>Trading involves significant risk of loss.</b>
   </div>
 
 <script>
-  let currentRiskPercent = 1.0;
+  let currentMult = 20;
 
-  function toggleTheme() {
-    const body = document.body;
-    body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-  }
-
-  function setRisk(val, btn) {
-    currentRiskPercent = val;
-    document.querySelectorAll('.risk-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    calculateRisk();
-  }
-
-  function updateMaxLoss() {
-    const val = document.getElementById('max-loss-slider').value;
-    document.getElementById('max-loss-display').textContent = '$' + val;
-    calculateRisk();
-  }
-
-  function calculateRisk() {
-    const balance = parseFloat(document.getElementById('balance').value) || 0;
-    const sl = parseFloat(document.getElementById('sl-distance').value) || 0;
+  function updateMarket() {
+    const sel = document.getElementById('market-select');
+    const customContainer = document.getElementById('custom-mult-container');
     
-    // Standard Forex calculation: (Balance * Risk%) / (SL * PipValue)
-    // Assuming standard lot where 1 pip = $10 on 1.0 lot for simplicity
-    const dollarRisk = balance * (currentRiskPercent / 100);
-    let lots = 0;
-    
-    if (sl > 0) {
-      lots = dollarRisk / (sl * 10); 
-    }
-
-    // Update UI
-    document.getElementById('lot-size').textContent = lots.toFixed(2);
-    document.getElementById('dollar-risk').textContent = `Risking: $${dollarRisk.toLocaleString()}`;
-
-    // Kill Switch Logic (Visual only for now)
-    const maxLoss = parseFloat(document.getElementById('max-loss-slider').value);
-    const display = document.getElementById('main-display');
-    
-    if (dollarRisk > maxLoss) {
-      display.classList.add('danger-zone');
-      document.getElementById('lot-size').classList.add('danger-text');
+    if (sel.value === "CUSTOM") {
+      customContainer.style.display = "block";
+      currentMult = parseFloat(document.getElementById('custom-mult').value) || 0;
     } else {
-      display.classList.remove('danger-zone');
-      document.getElementById('lot-size').classList.remove('danger-text');
+      customContainer.style.display = "none";
+      currentMult = parseFloat(sel.value);
+    }
+    calc();
+  }
+
+  function calc() {
+    if (document.getElementById('market-select').value === "CUSTOM") {
+      currentMult = parseFloat(document.getElementById('custom-mult').value) || 0;
+    }
+    
+    const sl = parseFloat(document.getElementById('sl').value) || 0;
+    const rr = parseFloat(document.getElementById('rr').value) || 0;
+    const lots = parseFloat(document.getElementById('lots').value) || 0;
+
+    const risk = lots * sl * currentMult;
+    const reward = risk * rr;
+
+    document.getElementById('out-risk').textContent = `-$${Math.round(risk).toLocaleString()}`;
+    document.getElementById('out-reward').textContent = `+$${Math.round(reward).toLocaleString()}`;
+    
+    document.getElementById('mult-val').textContent = `$${currentMult.toFixed(2)}`;
+    document.getElementById('move-val').textContent = `$${(lots * currentMult).toFixed(2)}`;
+  }
+
+  function spawnArrows() {
+    const redLayer = document.getElementById('red-arrows-layer');
+    const greenLayer = document.getElementById('green-arrows-layer');
+    for(let i=0; i<10; i++){
+      let r = document.createElement('div');
+      r.className = 'arrow down-anim';
+      r.style.left = (Math.random() * 90) + '%';
+      r.style.animationDelay = (Math.random() * 2) + 's';
+      r.style.color = 'var(--red)';
+      r.textContent = '▼';
+      redLayer.appendChild(r);
+
+      let g = document.createElement('div');
+      g.className = 'arrow up-anim';
+      g.style.left = (Math.random() * 90) + '%';
+      g.style.animationDelay = (Math.random() * 2) + 's';
+      g.style.color = 'var(--green)';
+      g.textContent = '▲';
+      greenLayer.appendChild(g);
     }
   }
 
-  window.onload = calculateRisk;
+  window.onload = () => {
+    spawnArrows();
+    updateMarket();
+  };
 </script>
 </body>
 </html>
